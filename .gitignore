@@ -1,0 +1,45 @@
+# Google Antigravity & Agent configurations
+GEMINI.md
+.gemini.md
+.agents/
+antigravity/
+.antigravity/
+
+# Mockups and old instructions
+mockup.html
+ARCHITECTURE.md
+AGENT_INSTRUCTIONS.md
+
+# Compiled artifacts
+target/
+**/*.rs.bk
+*.profraw
+
+# (Note: Cargo.lock IS usually committed for binary applications, 
+# so we do not ignore it here. We only ignore the build target folder)
+
+
+# Node modules and Svelte build directories
+node_modules/
+dist/
+dist-ssr/
+.svelte-kit/
+build/
+.npm/
+.eslintcache
+
+# Tauri specific target folders
+desktop-ui/src-tauri/target/
+desktop-ui/src-tauri/gen/
+
+# macOS / Linux / Windows junk files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+*.swp
+*.swo
+*~
