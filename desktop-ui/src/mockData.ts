@@ -1,4 +1,4 @@
-import type { AppProcess, DomainConnection, TimeRange, RuleStatus } from './types';
+import type { AppProcess, DomainConnection, TimeRange, RuleStatus, TrafficEventPayload } from './types';
 
 let seed = 11;
 export const randomFloat = (): number => {
@@ -152,3 +152,104 @@ export function agg(a: number[], n: number): number[] {
     return t / k;
   });
 }
+
+const PALETTE = [
+  '#e8590c', '#1db954', '#5865f2', '#1b6f9a', '#2b6cb0',
+  '#b4234f', '#4a86cf', '#6b7280', '#059669', '#d97706',
+  '#7c3aed', '#db2777', '#0891b2', '#ea580c'
+];
+
+export function getProcessColor(name: string): string {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const index = Math.abs(hash) % PALETTE.length;
+  return PALETTE[index];
+}
+
+export function handleIncomingTrafficEvent(
+  apps: AppProcess[],
+  event: TrafficEventPayload
+): AppProcess[] {
+  const processName = event.process_name?.trim() || `PID:${event.pid}`;
+  const ruleStatus: 'allow' | 'deny' =
+    event.action.toUpperCase() === 'BLOCK' ? 'deny' : 'allow';
+  const proto: 'TCP' | 'UDP' =
+    event.protocol.toUpperCase() === 'UDP' ? 'UDP' : 'TCP';
+  const rate = event.bytes_sent + event.bytes_received;
+
+  const nextApps = [...apps];
+  const appIndex = nextApps.findIndex(
+    (a) => a.n.toLowerCase() === processName.toLowerCase()
+  );
+
+  if (appIndex === -1) {
+    const newApp: AppProcess = {
+      n: processName,
+      c: getProcessColor(processName),
+      l: processName.charAt(0).toUpperCase() || 'P',
+      open: true,
+      down: event.bytes_received,
+      up: event.bytes_sent,
+      pid: event.pid,
+      d: [
+        {
+          n: `${event.destination_ip}:${event.destination_port}`,
+          s: ruleStatus,
+          down: event.bytes_received,
+          up: event.bytes_sent,
+          sp: [10, 20, 35, 25, 45],
+          ip: event.destination_ip,
+          port: event.destination_port,
+          proto,
+          rate
+        }
+      ]
+    };
+    nextApps.unshift(newApp);
+    return nextApps;
+  }
+
+  const app = { ...nextApps[appIndex], d: [...nextApps[appIndex].d] };
+  app.down += event.bytes_received;
+  app.up += event.bytes_sent;
+  if (event.pid) {
+    app.pid = event.pid;
+  }
+
+  const connIndex = app.d.findIndex(
+    (c) => c.ip === event.destination_ip && c.port === event.destination_port
+  );
+
+  if (connIndex === -1) {
+    app.d.unshift({
+      n: `${event.destination_ip}:${event.destination_port}`,
+      s: ruleStatus,
+      down: event.bytes_received,
+      up: event.bytes_sent,
+      sp: [10, 25, 40, 30, 50],
+      ip: event.destination_ip,
+      port: event.destination_port,
+      proto,
+      rate
+    });
+  } else {
+    const existingConn = { ...app.d[connIndex] };
+    existingConn.down += event.bytes_received;
+    existingConn.up += event.bytes_sent;
+    existingConn.rate = rate > 0 ? rate : existingConn.rate;
+    existingConn.s = ruleStatus;
+
+    const nextSp = [...existingConn.sp];
+    const spVal = Math.min(100, Math.max(10, Math.floor(existingConn.rate / 1024) % 100));
+    nextSp.push(spVal || 20);
+    if (nextSp.length > 10) nextSp.shift();
+    existingConn.sp = nextSp;
+    app.d[connIndex] = existingConn;
+  }
+
+  nextApps[appIndex] = app;
+  return nextApps;
+}
+
