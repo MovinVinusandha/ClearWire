@@ -1,0 +1,21 @@
+syntax = "proto3";
+package clearwire.v1;
+
+// The service that the UI will connect to
+service DaemonService {
+  // Streams real-time network connections to the UI
+  rpc StreamTraffic (Empty) returns (stream TrafficEvent);
+}
+
+message Empty {}
+
+message TrafficEvent {
+  uint32 pid = 1;
+  string process_name = 2;
+  string destination_ip = 3;
+  uint32 destination_port = 4;
+  string protocol = 5;
+  uint64 bytes_sent = 6;
+  uint64 bytes_received = 7;
+  string action = 8; // "ALLOW" or "BLOCK"
+}
