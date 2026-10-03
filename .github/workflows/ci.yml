@@ -72,12 +72,13 @@ jobs:
       - name: Rust cache
         uses: Swatinem/rust-cache@v2
 
-      - name: Install bpf-linker
+      - name: Install bpf-linker and eBPF toolchain
         run: |
           if [ -f "Cargo.toml" ]; then
             # Install pre-built binary using cargo-binstall to avoid building LLVM from source
             curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash
             cargo binstall --no-confirm bpf-linker
+            rustup toolchain install nightly --component rust-src,clippy
           else
             echo "No root Cargo.toml found. Skipping bpf-linker installation."
           fi
@@ -96,6 +97,9 @@ jobs:
         run: |
           if [ -f "Cargo.toml" ]; then
             cargo clippy --workspace --all-targets -- -D warnings
+            if [ -d "core-daemon-ebpf" ]; then
+              cargo +nightly clippy --manifest-path core-daemon-ebpf/Cargo.toml --target bpfel-unknown-none -Z build-std=core -- -D warnings
+            fi
           elif [ -f "desktop-ui/src-tauri/Cargo.toml" ]; then
             cargo clippy --manifest-path desktop-ui/src-tauri/Cargo.toml --all-targets -- -D warnings
           else

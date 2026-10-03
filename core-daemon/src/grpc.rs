@@ -1,20 +1,47 @@
 use std::pin::Pin;
-use tokio::sync::mpsc;
+use tokio::sync::{broadcast, mpsc};
 use tokio_stream::wrappers::ReceiverStream;
 use tokio_stream::Stream;
 use tonic::{Request, Response, Status};
 
+#[allow(clippy::result_large_err)]
 pub mod clearwire {
     tonic::include_proto!("clearwire.v1");
 }
 
-use clearwire::daemon_service_server::DaemonService;
 pub use clearwire::daemon_service_client::DaemonServiceClient;
+use clearwire::daemon_service_server::DaemonService;
 pub use clearwire::daemon_service_server::DaemonServiceServer;
 pub use clearwire::{Empty, TrafficEvent};
 
-#[derive(Debug, Default)]
-pub struct DaemonServiceImpl;
+#[derive(Debug, Clone)]
+pub struct DaemonServiceImpl {
+    tx: broadcast::Sender<TrafficEvent>,
+}
+
+impl Default for DaemonServiceImpl {
+    fn default() -> Self {
+        let (tx, _) = broadcast::channel(1024);
+        Self { tx }
+    }
+}
+
+impl DaemonServiceImpl {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn broadcast(
+        &self,
+        event: TrafficEvent,
+    ) -> Result<usize, broadcast::error::SendError<TrafficEvent>> {
+        self.tx.send(event)
+    }
+
+    pub fn sender(&self) -> broadcast::Sender<TrafficEvent> {
+        self.tx.clone()
+    }
+}
 
 #[tonic::async_trait]
 impl DaemonService for DaemonServiceImpl {
@@ -25,33 +52,25 @@ impl DaemonService for DaemonServiceImpl {
         &self,
         _request: Request<Empty>,
     ) -> Result<Response<Self::StreamTrafficStream>, Status> {
-        let (tx, rx) = mpsc::channel(32);
+        let mut bcast_rx = self.tx.subscribe();
+        let (tx, rx) = mpsc::channel(128);
 
         tokio::spawn(async move {
-            let mut interval = tokio::time::interval(std::time::Duration::from_secs(1));
-            let mut bytes_sent: u64 = 0;
-            let mut bytes_received: u64 = 0;
-
             loop {
-                interval.tick().await;
-
-                bytes_sent = bytes_sent.saturating_add(512);
-                bytes_received = bytes_received.saturating_add(1024);
-
-                let event = TrafficEvent {
-                    pid: 1234,
-                    process_name: "firefox".to_string(),
-                    destination_ip: "1.1.1.1".to_string(),
-                    destination_port: 443,
-                    protocol: "TCP".to_string(),
-                    bytes_sent,
-                    bytes_received,
-                    action: "ALLOW".to_string(),
-                };
-
-                if tx.send(Ok(event)).await.is_err() {
-                    // Receiver dropped, stop streaming
-                    break;
+                match bcast_rx.recv().await {
+                    Ok(event) => {
+                        if tx.send(Ok(event)).await.is_err() {
+                            // Receiver dropped, stop streaming
+                            break;
+                        }
+                    }
+                    Err(broadcast::error::RecvError::Lagged(_)) => {
+                        // Consumer was slower than ring buffer events; continue with latest
+                        continue;
+                    }
+                    Err(broadcast::error::RecvError::Closed) => {
+                        break;
+                    }
                 }
             }
         });
