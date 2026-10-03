@@ -3,6 +3,9 @@
   import { fmt } from '../mockData';
 
   export let apps: AppProcess[] = [];
+  export let isDrawer: boolean = false;
+  export let isCompact: boolean = false;
+  export let onClose: () => void = () => {};
 
   $: totalUpload = apps.reduce((acc, a) => acc + a.up, 0);
   $: totalDownload = apps.reduce((acc, a) => acc + a.down, 0);
@@ -21,7 +24,12 @@
     .slice(0, 6);
 </script>
 
-<aside class="w-full flex md:hidden xl:flex xl:w-72 shrink-0 flex-col gap-3 bg-side border-l border-line p-3 overflow-y-auto md:h-full select-none">
+<aside
+  id="sumP"
+  class="{isCompact ? 'w-full border-l-0' : isDrawer ? 'w-80 max-w-full' : 'w-72 shrink-0 border-l'} flex flex-col gap-3 bg-side border-line p-3 overflow-y-auto h-full select-none"
+  class:drawer-mode={isDrawer}
+>
+
   <!-- Summary Header -->
   <div class="flex items-start gap-3 pt-1">
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" class="text-mute mt-1">
@@ -31,23 +39,33 @@
       <div class="text-[17px] font-semibold leading-tight text-tx">Summary</div>
       <div class="text-mute text-[12px]">{apps.length} processes, 547 domains</div>
     </div>
+
+    {#if isDrawer}
+      <button class="hb sclose ml-auto" title="Close summary" type="button" on:click={onClose}>
+        <svg width="12" height="12" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round">
+          <path d="m1.800 1.800 6.400 6.400m0-6.400-6.400 6.400" />
+        </svg>
+      </button>
+    {/if}
   </div>
 
-  <!-- Global Upload / Download Total -->
+  <!-- Global Upload / Download Total Pills -->
   <div class="grid grid-cols-2 gap-1.5">
-    <div
-      class="flex items-center gap-1.5 px-2 h-7 rounded-lg font-medium text-[13px]"
-      style="background: color-mix(in srgb, var(--up) 22%, var(--panel)); color: var(--up)"
-    >
-      ↑
-      <b class="ml-auto text-tx font-semibold">{fmt(totalUpload)}</b>
+    <div class="pill up">
+      <i>
+        <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor">
+          <path d="M5 1 9 5.500H6.300V9H3.700V5.500H1z" />
+        </svg>
+      </i>
+      <b class="text-tx">{fmt(totalUpload)}</b>
     </div>
-    <div
-      class="flex items-center gap-1.5 px-2 h-7 rounded-lg font-medium text-[13px]"
-      style="background: color-mix(in srgb, var(--down) 22%, var(--panel)); color: var(--down)"
-    >
-      ↓
-      <b class="ml-auto text-tx font-semibold">{fmt(totalDownload)}</b>
+    <div class="pill down">
+      <i>
+        <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor">
+          <path d="M5 9 1 4.500h2.700V1h2.600v3.500H9z" />
+        </svg>
+      </i>
+      <b class="text-tx">{fmt(totalDownload)}</b>
     </div>
   </div>
 
@@ -59,7 +77,7 @@
       </svg>
       <span>Connections</span>
     </div>
-    <div class="mt-1">
+    <div class="mt-1 px-1">
       <div class="flex items-center gap-2.5 px-1.5 h-8">
         <span class="text-mute">
           <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">

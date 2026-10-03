@@ -6,10 +6,10 @@
   export let onSetRule: (appIndex: number, domainIndex: number, rule: 'allow' | 'deny') => void;
 </script>
 
-<section class="flex-1 min-h-0 flex flex-col select-none">
+<section id="csec" class="flex-1 min-h-0 flex flex-col select-none">
   <!-- Section Header -->
-  <div class="px-3 pt-2 pb-1.5 shrink-0">
-    <div class="sec">
+  <div class="pt-2 pb-1.5 shrink-0">
+    <div class="sec" style="padding: 0 12px;">
       <svg width="8" height="8" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.8">
         <path d="m2 3.500 3 3 3-3" />
       </svg>
@@ -19,14 +19,14 @@
   </div>
 
   <!-- Connections Table -->
-  <div class="flex-1 overflow-auto">
-    <table class="w-full min-w-[720px] border-collapse text-[12px]">
+  <div class="flex-1 overflow-y-auto overflow-x-hidden">
+    <table class="w-full border-collapse text-[12px]">
       <thead>
         <tr>
           <th>Process</th>
-          <th>Destination</th>
-          <th>Port</th>
-          <th>Protocol</th>
+          <th class="c-dst">Destination</th>
+          <th class="c-port">Port</th>
+          <th class="c-proto">Protocol</th>
           <th>Bandwidth</th>
           <th class="text-right pr-3">Rule</th>
         </tr>
@@ -34,30 +34,33 @@
       <tbody>
         {#each activeRows as { app, appIndex, domain, domainIndex }}
           <tr class="border-b border-line/60 transition-colors">
-            <!-- Process Icon + Name -->
+            <!-- Process Icon + Name + Subtitle (domain in narrow mode) -->
             <td>
               <span class="inline-flex items-center gap-2">
                 <span class="ic s" style="--c: {app.c}">{app.l}</span>
-                <span class="font-medium text-tx">{app.n}</span>
+                <span class="min-w-0">
+                  <span class="block font-medium text-tx">{app.n}</span>
+                  <span class="sub text-mute text-[11px]">{domain.n}</span>
+                </span>
               </span>
             </td>
 
             <!-- Destination Domain + IP -->
-            <td>
+            <td class="c-dst">
               <span class="text-tx">{domain.n}</span>
-              <span class="text-mute ml-1 font-mono text-[11px]">{domain.ip}</span>
+              <span class="c-ip text-mute ml-1 font-mono text-[11px]">{domain.ip}</span>
             </td>
 
             <!-- Port -->
-            <td class="font-mono text-[11px] text-tx">{domain.port}</td>
+            <td class="c-port font-mono text-[11px] text-tx">{domain.port}</td>
 
             <!-- Protocol -->
-            <td class="text-mute font-mono text-[11px]">{domain.proto}</td>
+            <td class="c-proto text-mute font-mono text-[11px]">{domain.proto}</td>
 
             <!-- Bandwidth -->
             <td>
-              <span class="text-down font-medium">↓ {fmt(domain.rate)}/s</span>
-              <span class="text-up font-medium ml-2">↑ {fmt(domain.rate * 0.12)}/s</span>
+              <span class="b text-down font-medium">↓ {fmt(domain.rate)}/s</span>
+              <span class="b text-up font-medium ml-2">↑ {fmt(domain.rate * 0.12)}/s</span>
             </td>
 
             <!-- Segmented Allow / Deny buttons -->

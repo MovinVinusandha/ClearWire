@@ -140,3 +140,15 @@ export function stepGraphData(
 
   return { download: newDown, upload: newUp };
 }
+
+export function agg(a: number[], n: number): number[] {
+  if (a.length === 0) return Array(n).fill(0);
+  const k = a.length / n;
+  return Array.from({ length: n }, (_, i) => {
+    let t = 0;
+    for (let j = 0; j < k; j++) {
+      t += a[Math.floor(i * k + j)] || 0;
+    }
+    return t / k;
+  });
+}

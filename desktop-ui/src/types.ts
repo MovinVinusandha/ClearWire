@@ -9,6 +9,10 @@ export type TimeRange =
   | 'Last 7 Days'
   | 'Last 30 Days';
 
+export type TabMode = 'apps' | 'graph' | 'conn' | 'sum';
+
+export type LayoutMode = 'wide' | 'mid' | 'compact';
+
 export interface DomainConnection {
   n: string;
   s: 'allow' | 'deny';

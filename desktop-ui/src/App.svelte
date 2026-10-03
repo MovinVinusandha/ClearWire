@@ -5,7 +5,9 @@
     SelectionState,
     FilterMode,
     TimeRange,
-    ActiveTableRow
+    ActiveTableRow,
+    TabMode,
+    LayoutMode
   } from './types';
   import {
     createInitialApps,
@@ -15,7 +17,7 @@
   } from './mockData';
 
   import Sidebar from './components/Sidebar.svelte';
-  import TopNav from './components/TopNav.svelte';
+  import WindowHeaderBar from './components/WindowHeaderBar.svelte';
   import ChartArea from './components/ChartArea.svelte';
   import ConnectionTable from './components/ConnectionTable.svelte';
   import SummaryPanel from './components/SummaryPanel.svelte';
@@ -26,6 +28,14 @@
   let filterMode: FilterMode = 'all';
   let timeRange: TimeRange = 'Last Hour';
   let theme: 'light' | 'dark' = 'dark';
+
+  let layoutMode: LayoutMode = 'wide';
+  let activeTab: TabMode = 'apps';
+  let isSummaryDrawerOpen: boolean = false;
+
+  let toastMessage: string = '';
+  let isToastVisible: boolean = false;
+  let toastTimer: ReturnType<typeof setTimeout> | null = null;
 
   let downloadData: number[] = [];
   let uploadData: number[] = [];
@@ -67,10 +77,26 @@
     return rows;
   })();
 
+  function showToast(message: string) {
+    toastMessage = message;
+    isToastVisible = true;
+    if (toastTimer) clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => {
+      isToastVisible = false;
+    }, 2200);
+  }
+
+  function handleSelectAll() {
+    selected = null;
+    if (layoutMode === 'compact') {
+      activeTab = 'graph';
+    }
+  }
+
   function handleSelect(appIndex: number, domainIndex: number | null) {
     if (domainIndex === null) {
       const isSame = selected && selected.a === appIndex && selected.d === null;
-      if (isSame) {
+      if (isSame && layoutMode !== 'compact') {
         apps[appIndex].open = !apps[appIndex].open;
         if (!apps[appIndex].open) {
           selected = null;
@@ -80,13 +106,17 @@
         selected = { a: appIndex, d: null };
       }
     } else {
-      if (selected && selected.a === appIndex && selected.d === domainIndex) {
+      if (selected && selected.a === appIndex && selected.d === domainIndex && layoutMode !== 'compact') {
         selected = null;
       } else {
         selected = { a: appIndex, d: domainIndex };
       }
     }
     apps = [...apps];
+
+    if (layoutMode === 'compact') {
+      activeTab = 'conn';
+    }
   }
 
   function handleToggleOpen(appIndex: number) {
@@ -129,6 +159,43 @@
     }
   }
 
+  function handleGlobalAction(action: 'allow' | 'deny' | 'reset' | 'theme' | 'about') {
+    if (action === 'allow') {
+      apps.forEach((a) => a.d.forEach((d) => (d.s = 'allow')));
+      apps = [...apps];
+      showToast('All connections allowed');
+    } else if (action === 'deny') {
+      apps.forEach((a) => a.d.forEach((d) => (d.s = 'deny')));
+      apps = [...apps];
+      showToast('All connections blocked');
+    } else if (action === 'reset') {
+      apps.forEach((a, i) =>
+        a.d.forEach((d, j) => {
+          d.s = (i + j) % 5 === 3 ? 'deny' : 'allow';
+        })
+      );
+      apps = [...apps];
+      showToast('Rules reset to defaults');
+    } else if (action === 'theme') {
+      handleToggleTheme();
+    } else if (action === 'about') {
+      showToast('clearWire 1.0 · sample data');
+    }
+  }
+
+  function updateLayout() {
+    if (typeof window === 'undefined') return;
+    const w = window.innerWidth;
+    const prevMode = layoutMode;
+    layoutMode = w >= 1280 ? 'wide' : w >= 760 ? 'mid' : 'compact';
+    if (layoutMode === 'wide') {
+      isSummaryDrawerOpen = false;
+    }
+    if (prevMode !== layoutMode && layoutMode === 'compact') {
+      activeTab = 'apps';
+    }
+  }
+
   onMount(() => {
     // Detect system color scheme default
     if (typeof window !== 'undefined' && window.matchMedia) {
@@ -136,6 +203,9 @@
       theme = prefersDark ? 'dark' : 'light';
       document.documentElement.setAttribute('data-theme', theme);
     }
+
+    updateLayout();
+    window.addEventListener('resize', updateLayout);
 
     // Live update interval every 2 seconds
     timerId = setInterval(() => {
@@ -148,56 +218,193 @@
   });
 
   onDestroy(() => {
+    if (typeof window !== 'undefined') {
+      window.removeEventListener('resize', updateLayout);
+    }
     if (timerId) {
       clearInterval(timerId);
+    }
+    if (toastTimer) {
+      clearTimeout(toastTimer);
     }
   });
 </script>
 
-<div class="flex flex-col md:flex-row h-full md:h-[calc(100%-40px)] md:m-5 md:rounded-xl overflow-y-auto md:overflow-hidden md:border border-black/30 md:shadow-[0_24px_60px_rgba(0,0,0,.4)] bg-bg">
-  <!-- Left Sidebar Component -->
-  <Sidebar
-    {apps}
-    {selected}
-    bind:searchQuery
-    bind:filterMode
-    {timeRange}
-    {sentTotal}
-    {recvTotal}
-    {uploadData}
-    {downloadData}
-    onSelect={handleSelect}
-    onToggleOpen={handleToggleOpen}
-    onSetRule={handleSetRule}
-    onPrevRange={handlePrevRange}
-    onNextRange={handleNextRange}
+<svelte:window
+  on:keydown={(e) => {
+    if (e.key === 'Escape') {
+      isSummaryDrawerOpen = false;
+    }
+  }}
+/>
+
+<div class="flex flex-col w-screen h-screen overflow-hidden bg-bg rounded-[10px] border border-line/60">
+  <!-- Top Native Window Header Bar -->
+  <WindowHeaderBar
+    {title}
+    {theme}
+    isCompact={layoutMode === 'compact'}
+    showSummaryToggle={layoutMode === 'mid'}
+    onToggleTheme={handleToggleTheme}
+    onToggleSummary={() => (isSummaryDrawerOpen = !isSummaryDrawerOpen)}
+    onGlobalAction={handleGlobalAction}
   />
 
-  <!-- Main Center Column -->
-  <main class="flex-1 min-w-0 flex flex-col min-h-[700px] md:min-h-0 md:h-full bg-panel">
-    <!-- TopNav Component -->
-    <TopNav
-      {title}
-      {timeRange}
-      onSelectRange={handleSelectRange}
-      {theme}
-      onToggleTheme={handleToggleTheme}
-    />
+  <!-- Panes Container -->
+  <div class="flex flex-1 min-h-0 relative w-full h-full">
+    {#if layoutMode === 'compact'}
+      <!-- Compact Mode: Active tab fills the entire window -->
+      {#if activeTab === 'apps'}
+        <div class="w-full h-full">
+          <Sidebar
+            {apps}
+            {selected}
+            bind:searchQuery
+            bind:filterMode
+            {timeRange}
+            {sentTotal}
+            {recvTotal}
+            {uploadData}
+            {downloadData}
+            isCompact={true}
+            onSelect={handleSelect}
+            onSelectAll={handleSelectAll}
+            onToggleOpen={handleToggleOpen}
+            onSetRule={handleSetRule}
+            onPrevRange={handlePrevRange}
+            onNextRange={handleNextRange}
+          />
+        </div>
+      {:else if activeTab === 'graph'}
+        <main class="w-full h-full flex flex-col bg-panel">
+          <ChartArea
+            {downloadData}
+            {uploadData}
+            {timeRange}
+            isCompact={true}
+            onSelectRange={handleSelectRange}
+          />
+        </main>
+      {:else if activeTab === 'conn'}
+        <main class="w-full h-full flex flex-col bg-panel">
+          <ConnectionTable
+            {activeRows}
+            onSetRule={handleSetRule}
+          />
+        </main>
+      {:else if activeTab === 'sum'}
+        <div class="w-full h-full">
+          <SummaryPanel
+            {apps}
+            isCompact={true}
+          />
+        </div>
+      {/if}
+    {:else}
+      <!-- Mid & Wide Modes: Multi-column desktop layout -->
+      <div class="w-72 shrink-0 h-full">
+        <Sidebar
+          {apps}
+          {selected}
+          bind:searchQuery
+          bind:filterMode
+          {timeRange}
+          {sentTotal}
+          {recvTotal}
+          {uploadData}
+          {downloadData}
+          isCompact={false}
+          onSelect={handleSelect}
+          onSelectAll={handleSelectAll}
+          onToggleOpen={handleToggleOpen}
+          onSetRule={handleSetRule}
+          onPrevRange={handlePrevRange}
+          onNextRange={handleNextRange}
+        />
+      </div>
 
-    <!-- Bandwidth Chart Component -->
-    <ChartArea
-      {downloadData}
-      {uploadData}
-      {timeRange}
-    />
+      <main class="flex-1 min-w-0 flex flex-col h-full bg-panel">
+        <ChartArea
+          {downloadData}
+          {uploadData}
+          {timeRange}
+          isCompact={false}
+          onSelectRange={handleSelectRange}
+        />
+        <ConnectionTable
+          {activeRows}
+          onSetRule={handleSetRule}
+        />
+      </main>
 
-    <!-- Active Connections Table Component -->
-    <ConnectionTable
-      {activeRows}
-      onSetRule={handleSetRule}
-    />
-  </main>
+      {#if layoutMode === 'wide'}
+        <div class="w-72 shrink-0 h-full">
+          <SummaryPanel {apps} isCompact={false} />
+        </div>
+      {:else if layoutMode === 'mid' && isSummaryDrawerOpen}
+        <!-- Mid-width drawer slide-over -->
+        <div class="absolute top-0 right-0 bottom-0 z-30 shadow-[-8px_0_30px_rgba(0,0,0,0.3)] w-80 max-w-full">
+          <SummaryPanel
+            {apps}
+            isDrawer={true}
+            isCompact={false}
+            onClose={() => (isSummaryDrawerOpen = false)}
+          />
+        </div>
+        <!-- Scrim overlay backdrop -->
+        <div
+          class="absolute inset-0 z-20 bg-black/35 cursor-pointer"
+          on:click={() => (isSummaryDrawerOpen = false)}
+          role="button"
+          tabindex="0"
+          on:keydown={(e) => e.key === 'Escape' && (isSummaryDrawerOpen = false)}
+        ></div>
+      {/if}
+    {/if}
+  </div>
 
-  <!-- Right Summary Panel Component -->
-  <SummaryPanel {apps} />
+  <!-- Mobile / Compact Navigation Tabs -->
+  {#if layoutMode === 'compact'}
+    <nav id="tabs" style="display: flex;">
+      <button class:on={activeTab === 'apps'} on:click={() => (activeTab = 'apps')} type="button">
+        <i>
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 5h12M3 9h12M3 13h8" />
+          </svg>
+        </i>
+        Apps
+      </button>
+      <button class:on={activeTab === 'graph'} on:click={() => (activeTab = 'graph')} type="button">
+        <i>
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 15V9M7.500 15V3M11 15V7M14.500 15V10" />
+          </svg>
+        </i>
+        Graph
+      </button>
+      <button class:on={activeTab === 'conn'} on:click={() => (activeTab = 'conn')} type="button">
+        <i>
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2.500" y="3.500" width="13" height="11" rx="2" />
+            <path d="M2.500 7.500h13M7 7.500v7" />
+          </svg>
+        </i>
+        Connections
+      </button>
+      <button class:on={activeTab === 'sum'} on:click={() => (activeTab = 'sum')} type="button">
+        <i>
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2.500" y="3.500" width="13" height="11" rx="2" />
+            <path d="M11 3.500v11" />
+          </svg>
+        </i>
+        Summary
+      </button>
+    </nav>
+  {/if}
+</div>
+
+<!-- Floating Action Feedback Toast -->
+<div id="toast" class:on={isToastVisible}>
+  {toastMessage}
 </div>
