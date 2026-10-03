@@ -78,7 +78,7 @@ jobs:
             # Install pre-built binary using cargo-binstall to avoid building LLVM from source
             curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash
             cargo binstall --no-confirm bpf-linker
-            rustup toolchain install nightly --component rust-src
+            rustup toolchain install nightly --component rust-src,clippy
           else
             echo "No root Cargo.toml found. Skipping bpf-linker installation."
           fi
