@@ -9,6 +9,7 @@ pub mod clearwire {
 }
 
 use clearwire::daemon_service_server::DaemonService;
+pub use clearwire::daemon_service_client::DaemonServiceClient;
 pub use clearwire::daemon_service_server::DaemonServiceServer;
 pub use clearwire::{Empty, TrafficEvent};
 

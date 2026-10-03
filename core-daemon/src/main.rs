@@ -1,8 +1,6 @@
 use anyhow::Result;
+use core_daemon::grpc::{DaemonServiceImpl, DaemonServiceServer};
 use tonic::transport::Server;
-
-mod grpc;
-use grpc::{DaemonServiceImpl, DaemonServiceServer};
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -13,8 +11,14 @@ async fn main() -> Result<()> {
 
     Server::builder()
         .add_service(DaemonServiceServer::new(daemon_service))
-        .serve(addr)
+        .serve_with_shutdown(addr, async {
+            if let Err(err) = tokio::signal::ctrl_c().await {
+                eprintln!("Failed to listen for ctrl+c signal: {}", err);
+            }
+            println!("Shutdown signal received, shutting down gRPC server...");
+        })
         .await?;
 
+    println!("ClearWire Daemon stopped cleanly.");
     Ok(())
 }
