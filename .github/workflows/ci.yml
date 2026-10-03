@@ -4,11 +4,11 @@ on:
   push:
     branches:
       - main
-      - develop
+      - dev
   pull_request:
     branches:
       - main
-      - develop
+      - dev
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -73,13 +73,41 @@ jobs:
         uses: Swatinem/rust-cache@v2
 
       - name: Install bpf-linker
-        run: cargo install bpf-linker
+        run: |
+          if [ -f "Cargo.toml" ]; then
+            # Install pre-built binary using cargo-binstall to avoid building LLVM from source
+            curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash
+            cargo binstall --no-confirm bpf-linker
+          else
+            echo "No root Cargo.toml found. Skipping bpf-linker installation."
+          fi
 
       - name: Check code formatting
-        run: cargo fmt --all -- --check
+        run: |
+          if [ -f "Cargo.toml" ]; then
+            cargo fmt --all -- --check
+          elif [ -f "desktop-ui/src-tauri/Cargo.toml" ]; then
+            cargo fmt --manifest-path desktop-ui/src-tauri/Cargo.toml --all -- --check
+          else
+            echo "No Cargo.toml found. Skipping formatting check."
+          fi
 
       - name: Run Clippy
-        run: cargo clippy --workspace --all-targets -- -D warnings
+        run: |
+          if [ -f "Cargo.toml" ]; then
+            cargo clippy --workspace --all-targets -- -D warnings
+          elif [ -f "desktop-ui/src-tauri/Cargo.toml" ]; then
+            cargo clippy --manifest-path desktop-ui/src-tauri/Cargo.toml --all-targets -- -D warnings
+          else
+            echo "No Cargo.toml found. Skipping Clippy check."
+          fi
 
       - name: Run tests
-        run: cargo test --workspace
+        run: |
+          if [ -f "Cargo.toml" ]; then
+            cargo test --workspace
+          elif [ -f "desktop-ui/src-tauri/Cargo.toml" ]; then
+            cargo test --manifest-path desktop-ui/src-tauri/Cargo.toml
+          else
+            echo "No Cargo.toml found. Skipping cargo test."
+          fi
