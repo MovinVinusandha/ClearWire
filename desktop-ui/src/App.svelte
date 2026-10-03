@@ -290,6 +290,7 @@
           <ConnectionTable
             {activeRows}
             onSetRule={handleSetRule}
+            onSelect={handleSelect}
           />
         </main>
       {:else if activeTab === 'sum'}
@@ -334,6 +335,7 @@
         <ConnectionTable
           {activeRows}
           onSetRule={handleSetRule}
+          onSelect={handleSelect}
         />
       </main>
 
