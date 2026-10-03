@@ -10,29 +10,57 @@ mockup.html
 ARCHITECTURE.md
 AGENT_INSTRUCTIONS.md
 
-# Compiled artifacts
+# Rust & Cargo Build Artifacts (core-daemon, Tauri backend)
 target/
+**/target/
 **/*.rs.bk
 *.profraw
+# Note: Cargo.lock is kept for binary applications and committed to git.
 
-# (Note: Cargo.lock IS usually committed for binary applications, 
-# so we do not ignore it here. We only ignore the build target folder)
-
-
-# Node modules and Svelte build directories
+# Node & Frontend Build Artifacts (desktop-ui)
 node_modules/
+**/node_modules/
 dist/
+**/dist/
 dist-ssr/
-.svelte-kit/
+**/dist-ssr/
 build/
+**/build/
+.svelte-kit/
+**/.svelte-kit/
+.vite/
+**/.vite/
 .npm/
 .eslintcache
 
-# Tauri specific target folders
+# Tauri Specific Artifacts & Caches
 desktop-ui/src-tauri/target/
+**/src-tauri/target/
 desktop-ui/src-tauri/gen/
+**/src-tauri/gen/
+.tauri/
+**/.tauri/
 
-# macOS / Linux / Windows junk files
+# Logs & Process Dumps
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Environment & Local Secrets
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Editor & IDE Settings
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
+
+# OS-generated Junk Files
 .DS_Store
 .DS_Store?
 ._*
