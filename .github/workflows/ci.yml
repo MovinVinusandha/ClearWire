@@ -73,7 +73,14 @@ jobs:
         uses: Swatinem/rust-cache@v2
 
       - name: Install bpf-linker
-        run: cargo install bpf-linker
+        run: |
+          if [ -f "Cargo.toml" ]; then
+            # Install pre-built binary using cargo-binstall to avoid building LLVM from source
+            curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash
+            cargo binstall --no-confirm bpf-linker
+          else
+            echo "No root Cargo.toml found. Skipping bpf-linker installation."
+          fi
 
       - name: Check code formatting
         run: |
