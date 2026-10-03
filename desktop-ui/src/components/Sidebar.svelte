@@ -273,51 +273,53 @@
   </div>
 
   <!-- Bottom sent/received counters & mini graph -->
-  <div id="miniBox" class="border-t border-line px-2.5 pt-2 pb-1.5 shrink-0">
-    <div class="grid grid-cols-2 gap-1.5 mb-2">
-      <div class="pill up">
-        <i>
-          <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor">
-            <path d="M5 1 9 5.500H6.300V9H3.700V5.500H1z" />
-          </svg>
-        </i>
-        sent
-        <b class="ml-auto text-tx font-semibold">{fmt(sentTotal)}</b>
-      </div>
-      <div class="pill down">
-        <i>
-          <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor">
-            <path d="M5 9 1 4.500h2.700V1h2.600v3.500H9z" />
-          </svg>
-        </i>
-        received
-        <b class="ml-auto text-tx font-semibold">{fmt(recvTotal)}</b>
-      </div>
-    </div>
-
-    <!-- Mini chart in CSS bars -->
-    <div class="bars h-24">
-      {#each miniBars as bar}
-        <div class="c">
-          <div class="h t">
-            <i style="height: {bar.hu.toFixed(1)}%;"></i>
-          </div>
-          <div class="h b">
-            <i style="height: {bar.hd.toFixed(1)}%;"></i>
-          </div>
+  {#if !isCompact}
+    <div id="miniBox" class="border-t border-line px-2.5 pt-2 pb-1.5 shrink-0">
+      <div class="grid grid-cols-2 gap-1.5 mb-2">
+        <div class="pill up">
+          <i>
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor">
+              <path d="M5 1 9 5.500H6.300V9H3.700V5.500H1z" />
+            </svg>
+          </i>
+          sent
+          <b class="ml-auto text-tx font-semibold">{fmt(sentTotal)}</b>
         </div>
-      {/each}
-    </div>
+        <div class="pill down">
+          <i>
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor">
+              <path d="M5 9 1 4.500h2.700V1h2.600v3.500H9z" />
+            </svg>
+          </i>
+          received
+          <b class="ml-auto text-tx font-semibold">{fmt(recvTotal)}</b>
+        </div>
+      </div>
 
-    <!-- Time range navigator -->
-    <div class="flex items-center justify-between mt-1.5 text-[13px]">
-      <button class="tb" title="Earlier range" type="button" on:click={onPrevRange}>
-        ‹
-      </button>
-      <span class="font-medium text-[12px] text-tx">{timeRange}</span>
-      <button class="tb" title="Later range" type="button" on:click={onNextRange}>
-        ›
-      </button>
+      <!-- Mini chart in CSS bars -->
+      <div class="bars h-24">
+        {#each miniBars as bar}
+          <div class="c">
+            <div class="h t">
+              <i style="height: {bar.hu.toFixed(1)}%;"></i>
+            </div>
+            <div class="h b">
+              <i style="height: {bar.hd.toFixed(1)}%;"></i>
+            </div>
+          </div>
+        {/each}
+      </div>
+
+      <!-- Time range navigator -->
+      <div class="flex items-center justify-between mt-1.5 text-[13px]">
+        <button class="tb" title="Earlier range" type="button" on:click={onPrevRange}>
+          ‹
+        </button>
+        <span class="font-medium text-[12px] text-tx">{timeRange}</span>
+        <button class="tb" title="Later range" type="button" on:click={onNextRange}>
+          ›
+        </button>
+      </div>
     </div>
-  </div>
+  {/if}
 </aside>

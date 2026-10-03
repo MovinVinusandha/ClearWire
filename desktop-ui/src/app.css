@@ -594,11 +594,12 @@ td:last-child, th:last-child {
 
 /* Compact Tabs Navigation */
 #tabs {
-  display: none;
+  display: flex;
   flex: none;
   height: 54px;
   border-top: 1px solid var(--line);
   background: var(--side);
+  user-select: none;
 }
 
 #tabs button {
@@ -613,6 +614,12 @@ td:last-child, th:last-child {
   color: var(--mute);
   font-size: 11px;
   font-weight: 500;
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+#tabs button:hover {
+  color: var(--tx);
 }
 
 #tabs i {
@@ -621,6 +628,11 @@ td:last-child, th:last-child {
   border-radius: 12px;
   display: grid;
   place-items: center;
+  transition: background-color 0.15s ease;
+}
+
+#tabs button:hover i {
+  background: var(--hov);
 }
 
 #tabs button.on {
@@ -630,4 +642,22 @@ td:last-child, th:last-child {
 
 #tabs button.on i {
   background: var(--sel);
+}
+
+/* Responsive Table for Small Windows */
+.sub {
+  display: none;
+}
+
+@media (max-width: 680px) {
+  .sub {
+    display: block;
+  }
+  .c-dst, .c-port, .c-proto, .c-ip {
+    display: none !important;
+  }
+  .b + .b {
+    margin-left: 0;
+    display: block;
+  }
 }

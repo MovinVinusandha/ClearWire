@@ -187,7 +187,7 @@
     if (typeof window === 'undefined') return;
     const w = window.innerWidth;
     const prevMode = layoutMode;
-    layoutMode = w >= 1280 ? 'wide' : w >= 760 ? 'mid' : 'compact';
+    layoutMode = w >= 1180 ? 'wide' : w >= 800 ? 'mid' : 'compact';
     if (layoutMode === 'wide') {
       isSummaryDrawerOpen = false;
     }
