@@ -4,11 +4,11 @@ on:
   push:
     branches:
       - main
-      - develop
+      - dev
   pull_request:
     branches:
       - main
-      - develop
+      - dev
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -76,10 +76,25 @@ jobs:
         run: cargo install bpf-linker
 
       - name: Check code formatting
-        run: cargo fmt --all -- --check
+        run: |
+          if [ -f "Cargo.toml" ]; then
+            cargo fmt --all -- --check
+          else
+            echo "No root Cargo.toml found. Skipping formatting check until backend crate is created."
+          fi
 
       - name: Run Clippy
-        run: cargo clippy --workspace --all-targets -- -D warnings
+        run: |
+          if [ -f "Cargo.toml" ]; then
+            cargo clippy --workspace --all-targets -- -D warnings
+          else
+            echo "No root Cargo.toml found. Skipping Clippy check until backend crate is created."
+          fi
 
       - name: Run tests
-        run: cargo test --workspace
+        run: |
+          if [ -f "Cargo.toml" ]; then
+            cargo test --workspace
+          else
+            echo "No root Cargo.toml found. Skipping cargo test until backend crate is created."
+          fi
