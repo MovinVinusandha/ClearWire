@@ -86,22 +86,28 @@ jobs:
         run: |
           if [ -f "Cargo.toml" ]; then
             cargo fmt --all -- --check
+          elif [ -f "desktop-ui/src-tauri/Cargo.toml" ]; then
+            cargo fmt --manifest-path desktop-ui/src-tauri/Cargo.toml --all -- --check
           else
-            echo "No root Cargo.toml found. Skipping formatting check until backend crate is created."
+            echo "No Cargo.toml found. Skipping formatting check."
           fi
 
       - name: Run Clippy
         run: |
           if [ -f "Cargo.toml" ]; then
             cargo clippy --workspace --all-targets -- -D warnings
+          elif [ -f "desktop-ui/src-tauri/Cargo.toml" ]; then
+            cargo clippy --manifest-path desktop-ui/src-tauri/Cargo.toml --all-targets -- -D warnings
           else
-            echo "No root Cargo.toml found. Skipping Clippy check until backend crate is created."
+            echo "No Cargo.toml found. Skipping Clippy check."
           fi
 
       - name: Run tests
         run: |
           if [ -f "Cargo.toml" ]; then
             cargo test --workspace
+          elif [ -f "desktop-ui/src-tauri/Cargo.toml" ]; then
+            cargo test --manifest-path desktop-ui/src-tauri/Cargo.toml
           else
-            echo "No root Cargo.toml found. Skipping cargo test until backend crate is created."
+            echo "No Cargo.toml found. Skipping cargo test."
           fi

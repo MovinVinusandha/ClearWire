@@ -37,7 +37,7 @@
     </svg>
     <div>
       <div class="text-[17px] font-semibold leading-tight text-tx">Summary</div>
-      <div class="text-mute text-[12px]">{apps.length} processes, 547 domains</div>
+      <div class="text-mute text-[12px]">{apps.length} processes, {allDomains.length} domains</div>
     </div>
 
     {#if isDrawer}

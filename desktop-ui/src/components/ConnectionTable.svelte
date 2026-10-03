@@ -133,46 +133,62 @@
       <thead>
         <tr>
           <!-- Process Sortable Header -->
-          <th class="cursor-pointer select-none hover:text-tx" on:click={() => toggleSort('process')}>
-            <span class="inline-flex items-center gap-1">
-              Process
+          <th aria-sort={sortField === 'process' ? (sortAsc ? 'ascending' : 'descending') : 'none'}>
+            <button
+              type="button"
+              class="inline-flex items-center gap-1 font-inherit text-inherit bg-transparent border-0 p-0 cursor-pointer select-none hover:text-tx focus:outline-none focus-visible:underline"
+              on:click={() => toggleSort('process')}
+            >
+              <span>Process</span>
               {#if sortField === 'process'}
                 <span class="text-[10px] text-down">{sortAsc ? '▲' : '▼'}</span>
               {/if}
-            </span>
+            </button>
           </th>
 
           <!-- Destination Sortable Header -->
-          <th class="c-dst cursor-pointer select-none hover:text-tx" on:click={() => toggleSort('domain')}>
-            <span class="inline-flex items-center gap-1">
-              Destination & IP
+          <th class="c-dst" aria-sort={sortField === 'domain' ? (sortAsc ? 'ascending' : 'descending') : 'none'}>
+            <button
+              type="button"
+              class="inline-flex items-center gap-1 font-inherit text-inherit bg-transparent border-0 p-0 cursor-pointer select-none hover:text-tx focus:outline-none focus-visible:underline"
+              on:click={() => toggleSort('domain')}
+            >
+              <span>Destination & IP</span>
               {#if sortField === 'domain'}
                 <span class="text-[10px] text-down">{sortAsc ? '▲' : '▼'}</span>
               {/if}
-            </span>
+            </button>
           </th>
 
           <!-- Port Header -->
-          <th class="c-port cursor-pointer select-none hover:text-tx" on:click={() => toggleSort('port')}>
-            <span class="inline-flex items-center gap-1">
-              Port
+          <th class="c-port" aria-sort={sortField === 'port' ? (sortAsc ? 'ascending' : 'descending') : 'none'}>
+            <button
+              type="button"
+              class="inline-flex items-center gap-1 font-inherit text-inherit bg-transparent border-0 p-0 cursor-pointer select-none hover:text-tx focus:outline-none focus-visible:underline"
+              on:click={() => toggleSort('port')}
+            >
+              <span>Port</span>
               {#if sortField === 'port'}
                 <span class="text-[10px] text-down">{sortAsc ? '▲' : '▼'}</span>
               {/if}
-            </span>
+            </button>
           </th>
 
           <!-- Protocol Header -->
           <th class="c-proto">Proto</th>
 
           <!-- Bandwidth Sortable Header -->
-          <th class="cursor-pointer select-none hover:text-tx" on:click={() => toggleSort('rate')}>
-            <span class="inline-flex items-center gap-1">
-              Bandwidth
+          <th aria-sort={sortField === 'rate' ? (sortAsc ? 'ascending' : 'descending') : 'none'}>
+            <button
+              type="button"
+              class="inline-flex items-center gap-1 font-inherit text-inherit bg-transparent border-0 p-0 cursor-pointer select-none hover:text-tx focus:outline-none focus-visible:underline"
+              on:click={() => toggleSort('rate')}
+            >
+              <span>Bandwidth</span>
               {#if sortField === 'rate'}
                 <span class="text-[10px] text-down">{sortAsc ? '▲' : '▼'}</span>
               {/if}
-            </span>
+            </button>
           </th>
 
           <!-- Rule Header -->
