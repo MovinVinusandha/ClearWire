@@ -1,4 +1,6 @@
-use core_daemon::grpc::{DaemonServiceImpl, DaemonServiceServer, DaemonServiceClient, Empty};
+use core_daemon::grpc::{
+    DaemonServiceClient, DaemonServiceImpl, DaemonServiceServer, Empty, TrafficEvent,
+};
 use std::time::Duration;
 use tokio::net::TcpListener;
 use tokio_stream::wrappers::TcpListenerStream;
@@ -13,10 +15,12 @@ async fn test_grpc_stream_traffic() {
     let local_addr = listener.local_addr().expect("failed to get local addr");
 
     let (shutdown_tx, shutdown_rx) = tokio::sync::oneshot::channel::<()>();
+    let daemon_service = DaemonServiceImpl::new();
+    let service_clone = daemon_service.clone();
 
     let server_handle = tokio::spawn(async move {
         Server::builder()
-            .add_service(DaemonServiceServer::new(DaemonServiceImpl::default()))
+            .add_service(DaemonServiceServer::new(daemon_service))
             .serve_with_incoming_shutdown(TcpListenerStream::new(listener), async {
                 let _ = shutdown_rx.await;
             })
@@ -31,15 +35,26 @@ async fn test_grpc_stream_traffic() {
 
     let mut client = DaemonServiceClient::new(channel);
 
-    let response = tokio::time::timeout(
-        Duration::from_secs(5),
-        client.stream_traffic(Empty {}),
-    )
-    .await
-    .expect("RPC call timed out")
-    .expect("stream_traffic RPC failed");
+    let response = tokio::time::timeout(Duration::from_secs(5), client.stream_traffic(Empty {}))
+        .await
+        .expect("RPC call timed out")
+        .expect("stream_traffic RPC failed");
 
     let mut stream = response.into_inner();
+
+    // Broadcast first event
+    service_clone
+        .broadcast(TrafficEvent {
+            pid: 1234,
+            process_name: "firefox".to_string(),
+            destination_ip: "1.1.1.1".to_string(),
+            destination_port: 443,
+            protocol: "TCP".to_string(),
+            bytes_sent: 512,
+            bytes_received: 1024,
+            action: "ALLOW".to_string(),
+        })
+        .expect("failed to broadcast event 1");
 
     // Verify first event
     let first_msg = tokio::time::timeout(Duration::from_secs(5), stream.next())
@@ -48,6 +63,7 @@ async fn test_grpc_stream_traffic() {
         .expect("Stream ended prematurely")
         .expect("Error in gRPC stream");
 
+    assert_eq!(first_msg.pid, 1234);
     assert_eq!(first_msg.process_name, "firefox");
     assert_eq!(first_msg.destination_ip, "1.1.1.1");
     assert_eq!(first_msg.destination_port, 443);
@@ -55,6 +71,20 @@ async fn test_grpc_stream_traffic() {
     assert_eq!(first_msg.action, "ALLOW");
     assert_eq!(first_msg.bytes_sent, 512);
     assert_eq!(first_msg.bytes_received, 1024);
+
+    // Broadcast second event
+    service_clone
+        .broadcast(TrafficEvent {
+            pid: 1234,
+            process_name: "firefox".to_string(),
+            destination_ip: "1.1.1.1".to_string(),
+            destination_port: 443,
+            protocol: "TCP".to_string(),
+            bytes_sent: 1024,
+            bytes_received: 2048,
+            action: "ALLOW".to_string(),
+        })
+        .expect("failed to broadcast event 2");
 
     // Verify second event
     let second_msg = tokio::time::timeout(Duration::from_secs(5), stream.next())

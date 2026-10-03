@@ -1,0 +1,16 @@
+[workspace]
+resolver = "2"
+members = [
+    "core-daemon",
+    "core-daemon-common",
+    "core-daemon-ebpf",
+]
+exclude = [
+    "desktop-ui/src-tauri",
+]
+
+[profile.dev]
+panic = "abort"
+
+[profile.release]
+panic = "abort"
