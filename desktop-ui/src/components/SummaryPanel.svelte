@@ -11,9 +11,9 @@
   $: totalDownload = apps.reduce((acc, a) => acc + a.down, 0);
 
   $: allDomains = apps.flatMap((a) => a.d.map((d) => ({ ...d, appName: a.n })));
-  $: deniedCount = 1280 + allDomains.filter((d) => d.s === 'deny').length;
-  $: unconfirmedCount = 3;
-  $: incomingCount = 12;
+  $: deniedCount = allDomains.filter((d) => d.s === 'deny').length;
+  $: unconfirmedCount = 0;
+  $: incomingCount = 0;
 
   $: topProcesses = [...apps]
     .sort((a, b) => b.down + b.up - (a.down + a.up))

@@ -257,12 +257,6 @@
               </div>
             </div>
           {/each}
-
-          {#if !searchQuery.trim()}
-            <div class="pl-[60px] h-6 flex items-center text-mute text-[11px]">
-              {app.d.length * 37 + 3} more…
-            </div>
-          {/if}
         {/if}
       {/if}
     {:else}

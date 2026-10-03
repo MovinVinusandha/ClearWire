@@ -34,6 +34,24 @@ export interface AppProcess {
   down: number;
   up: number;
   d: DomainConnection[];
+  pid?: number;
+}
+
+export interface TrafficEventPayload {
+  pid: number;
+  process_name: string;
+  destination_ip: string;
+  destination_port: number;
+  protocol: string;
+  bytes_sent: number;
+  bytes_received: number;
+  action: string;
+}
+
+export interface DaemonStatusPayload {
+  connected: boolean;
+  endpoint?: string;
+  error?: string | null;
 }
 
 export interface SelectionState {

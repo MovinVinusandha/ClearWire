@@ -6,6 +6,7 @@
   export let theme: 'light' | 'dark' = 'dark';
   export let isCompact: boolean = false;
   export let showSummaryToggle: boolean = false;
+  export let daemonConnected: boolean = false;
   export let onToggleTheme: () => void;
   export let onToggleSummary: () => void = () => {};
   export let onGlobalAction: (action: 'allow' | 'deny' | 'reset' | 'theme' | 'about') => void;
@@ -97,6 +98,19 @@
       <span class="font-bold text-[13px] truncate text-tx pointer-events-none">
         {title}
       </span>
+      <div
+        class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold border pointer-events-auto"
+        style={daemonConnected
+          ? 'background: rgba(46, 213, 115, 0.12); border-color: rgba(46, 213, 115, 0.35); color: var(--ok);'
+          : 'background: rgba(255, 171, 0, 0.12); border-color: rgba(255, 171, 0, 0.35); color: #e69500;'}
+        title={daemonConnected ? 'Connected to ClearWire privileged eBPF daemon' : 'Connecting to daemon at [::1]:50051...'}
+      >
+        <span
+          class="w-1.5 h-1.5 rounded-full"
+          style={daemonConnected ? 'background: var(--ok);' : 'background: #e69500;'}
+        ></span>
+        <span>{daemonConnected ? 'Daemon Online' : 'Connecting...'}</span>
+      </div>
     </div>
   {:else}
     <!-- COMPACT MODE: Unified top bar -->

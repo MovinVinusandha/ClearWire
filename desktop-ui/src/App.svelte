@@ -1,5 +1,7 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
+  import { listen, type UnlistenFn } from '@tauri-apps/api/event';
+  import { invoke } from '@tauri-apps/api/core';
   import type {
     AppProcess,
     SelectionState,
@@ -7,12 +9,15 @@
     TimeRange,
     ActiveTableRow,
     TabMode,
-    LayoutMode
+    LayoutMode,
+    TrafficEventPayload,
+    DaemonStatusPayload
   } from './types';
   import {
     createInitialApps,
     generateGraphData,
     stepGraphData,
+    handleIncomingTrafficEvent,
     TIME_RANGES
   } from './mockData';
 
@@ -22,7 +27,11 @@
   import ConnectionTable from './components/ConnectionTable.svelte';
   import SummaryPanel from './components/SummaryPanel.svelte';
 
-  let apps: AppProcess[] = createInitialApps();
+  const isTauriEnv = typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
+  let apps: AppProcess[] = isTauriEnv ? [] : createInitialApps();
+  let isDaemonConnected: boolean = false;
+  let unlistenTraffic: UnlistenFn | null = null;
+  let unlistenStatus: UnlistenFn | null = null;
   let selected: SelectionState | null = null;
   let searchQuery: string = '';
   let filterMode: FilterMode = 'all';
@@ -42,7 +51,9 @@
   let timerId: ReturnType<typeof setInterval> | null = null;
 
   // Initialize graph data
-  const initialData = generateGraphData(timeRange);
+  const initialData = isTauriEnv
+    ? { download: Array(96).fill(0), upload: Array(96).fill(0) }
+    : generateGraphData(timeRange);
   downloadData = initialData.download;
   uploadData = initialData.upload;
 
@@ -207,9 +218,55 @@
     updateLayout();
     window.addEventListener('resize', updateLayout);
 
-    // Live update interval every 2 seconds
+    // Safely set up Tauri event listeners if running within the Tauri runtime
+    const setupTauriEvents = async () => {
+      try {
+        if (isTauriEnv) {
+          try {
+            isDaemonConnected = await invoke<boolean>('check_daemon_connected');
+          } catch (invokeErr) {
+            console.warn('Failed to query daemon status via invoke:', invokeErr);
+          }
+
+          unlistenTraffic = await listen<TrafficEventPayload>('traffic-event', (event) => {
+            if (!isDaemonConnected) {
+              isDaemonConnected = true;
+            }
+
+            const payload = event.payload;
+            apps = handleIncomingTrafficEvent(apps, payload);
+
+            if (payload.bytes_received > 0 || payload.bytes_sent > 0) {
+              if (downloadData.length > 0) {
+                downloadData[downloadData.length - 1] += payload.bytes_received;
+                downloadData = [...downloadData];
+              }
+              if (uploadData.length > 0) {
+                uploadData[uploadData.length - 1] += payload.bytes_sent;
+                uploadData = [...uploadData];
+              }
+            }
+          });
+
+          unlistenStatus = await listen<DaemonStatusPayload>('daemon-status', (event) => {
+            const prev = isDaemonConnected;
+            isDaemonConnected = event.payload.connected;
+            if (isDaemonConnected && !prev) {
+              showToast('Connected to ClearWire Core Daemon');
+            } else if (!isDaemonConnected && prev) {
+              showToast('Disconnected from Core Daemon. Reconnecting...');
+            }
+          });
+        }
+      } catch (err) {
+        console.warn('Tauri event listening not available:', err);
+      }
+    };
+    setupTauriEvents();
+
+    // In preview mode without Tauri, step mock graph. When in Tauri, use real live traffic.
     timerId = setInterval(() => {
-      if (timeRange === 'Last Hour') {
+      if (!isTauriEnv && timeRange === 'Last Hour') {
         const stepped = stepGraphData(downloadData, uploadData);
         downloadData = stepped.download;
         uploadData = stepped.upload;
@@ -227,6 +284,14 @@
     if (toastTimer) {
       clearTimeout(toastTimer);
     }
+    if (unlistenTraffic) {
+      unlistenTraffic();
+      unlistenTraffic = null;
+    }
+    if (unlistenStatus) {
+      unlistenStatus();
+      unlistenStatus = null;
+    }
   });
 </script>
 
@@ -243,6 +308,7 @@
   <WindowHeaderBar
     {title}
     {theme}
+    daemonConnected={isDaemonConnected}
     isCompact={layoutMode === 'compact'}
     showSummaryToggle={layoutMode === 'mid'}
     onToggleTheme={handleToggleTheme}
